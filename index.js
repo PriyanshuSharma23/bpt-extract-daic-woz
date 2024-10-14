@@ -1,5 +1,6 @@
 const axios = require("axios");
 const fs = require("fs");
+const { rm: rmPromise } = require("fs/promises");
 const tar = require("tar");
 const path = require("path");
 
@@ -32,6 +33,12 @@ async function processEntry(entry, index) {
     console.log(`Processing entry ${index + 1}: ${entry}`);
 
     const entryNo = entry.split("/").at(-1).split("_").at(0);
+
+    // Check if the extraction folder already exists
+    if (fs.existsSync(`./audio/${entryNo}_P`)) {
+      console.log(`Folder for Entry ${index + 1} already exists, skipping...`);
+      return; // Return early and skip the entry
+    }
 
     // Download the .tar.gz file
     const response = await axios({
@@ -71,13 +78,14 @@ async function processEntry(entry, index) {
     console.error(`Error processing entry ${index + 1}:`, err.toString());
   } finally {
     // Delete the temporary file
-    fs.rm(tempLocation, (err) => {
+    try {
+      await rmPromise(tempLocation);
+      console.log(`Temp file for entry ${index + 1} deleted`);
+    } catch (err) {
       if (err) {
         console.error(`Error deleting temp file for entry ${index + 1}:`, err);
-      } else {
-        console.log(`Temp file for entry ${index + 1} deleted`);
       }
-    });
+    }
   }
 }
 
